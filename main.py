@@ -82,6 +82,7 @@ def main():
     # display_settings(args)
     
     extract_videos(args)
+    os.makedirs(args.output, exist_ok=True)
     i = 0
     for batch in os.listdir(args.temp):
         batch_path = os.path.join(args.temp, batch)
