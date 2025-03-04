@@ -1,6 +1,7 @@
 from Scripts.args import get_validated_args
 import cv2
 import os
+import shutil
 os.environ['TORCH_CUDA_ARCH_LIST'] = "12.0"
 import RVRT.main_test_rvrt as rvrt
 
@@ -30,7 +31,7 @@ def extract_frames(args, file):
         print("Error: Could not open video.")
         return
     temp_dir = os.path.join(args.temp, filename)
-    # os.makedirs(temp_dir, exist_ok=True)
+    os.makedirs(temp_dir, exist_ok=True)
     print(f"Saving frames to: {temp_dir}")
     n = 0
     batch_count = 0
@@ -58,9 +59,15 @@ def extract_frames(args, file):
 
 def extract_videos(args):
     if (os.listdir(args.temp) != []):
-        cont = input("Error: Temp directory is not empty. Did you want to continue? (May overwrite but not delete existing files) [y/n]: ")
+        cont = input("Error: Temp directory is not empty. Did you want to delete its contents? (If no will use the files in temp for inference) [y/n]: ")
         if cont.lower() != 'y':
             return
+        for file in os.listdir(args.temp):
+            file_path = os.path.join(args.temp, file)
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
     print(f"Reading video(s) from: {args.input}")
     if os.path.isdir(args.input):
         for file in os.listdir(args.input):
