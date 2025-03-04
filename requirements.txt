@@ -1,0 +1,11 @@
+torch
+torchvision
+opencv-python
+tqdm
+tensorboardX
+pyiqa
+thop
+numpy
+pandas
+opencv-python
+logger

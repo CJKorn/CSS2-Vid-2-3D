@@ -169,3 +169,9 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# input, output, temp, and checkpoint folders
+input/*
+output/*
+temp/*
+ckpt/*
