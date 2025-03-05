@@ -1,5 +1,5 @@
 # CSS2-Vid-2-3D
-A video restoration project based on RVRT (Recurrent Video Restoration Transformer with Guided Deformable Attention), enabling higher quality 3D reconstruction and imaging from low quality input videos.
+A video restoration project based on [RVRT (Recurrent Video Restoration Transformer with Guided Deformable Attention)](https://github.com/JingyunLiang/RVRT), enabling higher quality 3D reconstruction and imaging from low quality input videos.
 
 ## Requirements
 > - Python >= 3.8
@@ -81,4 +81,4 @@ The original RVRT codebase incorporates code from several sources with different
 [mmediting](https://github.com/open-mmlab/mmediting) (Apache 2.0 License)
 Our modifications and additional code for 3D reconstruction purposes maintain compatibility with these license requirements.
 
-For more details on the original implementation, please visit the RVRT GitHub repository.
+For more details on the original implementation, please visit the [RVRT GitHub repository](https://github.com/JingyunLiang/RVRT).
