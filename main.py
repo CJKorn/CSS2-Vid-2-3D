@@ -2,7 +2,7 @@ from Scripts.args import get_validated_args
 import cv2
 import os
 import shutil
-os.environ['TORCH_CUDA_ARCH_LIST'] = "12.0"
+os.environ['TORCH_CUDA_ARCH_LIST'] = "12.0" #TODO: Make not bad
 import RVRT.main_test_rvrt as rvrt
 
 def display_settings(args):
