@@ -30,8 +30,8 @@ def extract_frames(args, file):
     if not capture.isOpened():
         print("Error: Could not open video.")
         return
-    temp_dir = os.path.join(args.temp, filename)
-    os.makedirs(temp_dir, exist_ok=True)
+    temp_dir = os.path.join(args.temp, "extracted_frames", filename)
+    # os.makedirs(temp_dir, exist_ok=True)
     print(f"Saving frames to: {temp_dir}")
     n = 0
     batch_count = 0
@@ -42,11 +42,11 @@ def extract_frames(args, file):
             print("No more frames to read or error reading frame.")
             break
         if corrected_batch_size > 0:
-            batch_dir = os.path.join(args.temp, f"{filename}_batch_{batch_count}")
+            batch_dir = os.path.join(temp_dir, f"batch_{batch_count}")
             os.makedirs(batch_dir, exist_ok=True)
             frame_path = os.path.join(batch_dir, f"frame{n}.jpg")
         else:
-            frame_path = os.path.join(temp_dir, f"frame{n}.jpg")
+            frame_path = os.path.join(temp_dir, "batch_0", f"frame{n}.jpg")
         
         if n % args.frame_interval == 0:
             cv2.imwrite(frame_path, frame)
@@ -57,17 +57,21 @@ def extract_frames(args, file):
             batch_count += 1
     print("Video processing complete!")
 
-def extract_videos(args):
+def check_temp_dir(args):
     if (os.listdir(args.temp) != []):
         cont = input("Error: Temp directory is not empty. Did you want to delete its contents? (If no will use the files in temp for inference) [y/n]: ")
         if cont.lower() != 'y':
             return
-        for file in os.listdir(args.temp):
-            file_path = os.path.join(args.temp, file)
+        path = os.path.join(args.temp, "extracted_frames")
+        os.makedirs(path, exist_ok=True)
+        for file in os.listdir(path):
+            file_path = os.path.join(path, file)
             if os.path.isfile(file_path):
                 os.unlink(file_path)
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
+
+def extract_videos(args):
     print(f"Reading video(s) from: {args.input}")
     if os.path.isdir(args.input):
         for file in os.listdir(args.input):
@@ -80,15 +84,26 @@ def extract_videos(args):
 def main():
     args = get_validated_args()
     # display_settings(args)
-    
+    check_temp_dir(args)
+    output = os.path.join(args.temp, "deblurred")
+    extracted_frames = os.path.join(args.temp, "extracted_frames")
+    os.makedirs(output, exist_ok=True)
+    os.makedirs(extracted_frames, exist_ok=True)
     extract_videos(args)
     os.makedirs(args.output, exist_ok=True)
     i = 0
-    for batch in os.listdir(args.temp):
-        batch_path = os.path.join(args.temp, batch)
-        i += 1
-        print(f"Processing batch {i}: {batch_path}")
-        rvrt.infer(args, batch_path)
+    for video_dir in os.listdir(extracted_frames):
+        video_path = os.path.join(extracted_frames, video_dir)
+        if os.path.isdir(video_path):
+            for batch in os.listdir(video_path):
+                if batch.startswith("batch_"):
+                    deblur_path = os.path.join(output, video_dir)
+                    os.makedirs(deblur_path, exist_ok=True)
+                    batch_path = os.path.join(video_path, batch)
+                    i += 1
+                    print(f"Processing batch {i}: {batch_path}")
+                    print(f"Saving deblurred frames to: {deblur_path}")
+                    rvrt.infer(args, batch_path, deblur_path)
 
 if __name__ == "__main__":
     main()

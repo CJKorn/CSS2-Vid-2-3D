@@ -20,7 +20,7 @@ from RVRT.utils import utils_image as util
 from RVRT.data.dataset_video_test import VideoRecurrentTestDataset, VideoTestVimeo90KDataset, SingleVideoRecurrentTestDataset
 
 
-def infer(args, dataroot):
+def infer(args, dataroot, outputdir):
     # parser = argparse.ArgumentParser()
     # parser.add_argument('--task', type=str, default='001_RVRT_videosr_bi_REDS_30frames', help='tasks: 001 to 006')
     # parser.add_argument('--sigma', type=int, default=0, help='noise level for denoising: 10, 20, 30, 40, 50')
@@ -53,7 +53,7 @@ def infer(args, dataroot):
     test_loader = DataLoader(dataset=test_set, num_workers=args.num_workers, batch_size=1, shuffle=False)
 
     # save_dir = f'results/{args.task}'
-    save_dir = args.output
+    save_dir = outputdir
     os.makedirs(save_dir, exist_ok=True)
     test_results = OrderedDict()
     test_results['psnr'] = []
@@ -61,7 +61,7 @@ def infer(args, dataroot):
     test_results['psnr_y'] = []
     test_results['ssim_y'] = []
 
-    assert len(test_loader) != 0, f'No dataset found at {args.temp}'
+    assert len(test_loader) != 0, f'No dataset found at {dataroot}'
 
     for idx, batch in enumerate(test_loader):
         lq = batch['L'].to(device)
