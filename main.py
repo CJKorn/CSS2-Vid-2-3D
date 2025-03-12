@@ -62,7 +62,8 @@ def check_temp_dir(args):
         cont = input("Error: Temp directory is not empty. Did you want to delete its contents? (If no will use the files in temp for inference) [y/n]: ")
         if cont.lower() != 'y':
             return
-        path = os.path.join(args.temp, "extracted_frames")
+        # path = os.path.join(args.temp, "extracted_frames")
+        path = args.temp
         os.makedirs(path, exist_ok=True)
         for file in os.listdir(path):
             file_path = os.path.join(path, file)
@@ -83,7 +84,7 @@ def extract_videos(args):
 
 def main():
     args = get_validated_args()
-    # display_settings(args)
+    display_settings(args)
     check_temp_dir(args)
     output = os.path.join(args.temp, "deblurred")
     extracted_frames = os.path.join(args.temp, "extracted_frames")
@@ -104,6 +105,22 @@ def main():
                     print(f"Processing batch {i}: {batch_path}")
                     print(f"Saving deblurred frames to: {deblur_path}")
                     rvrt.infer(args, batch_path, deblur_path)
+    # do upscaling (Uses too much memory)
+    # args.task = "002_RVRT_videosr_bi_Vimeo_14frames"
+    # args.tile = [4,48,48]
+    # upscaled = os.path.join(args.temp, "upscaled")
+    # os.makedirs(upscaled, exist_ok=True)
+    # for video_dir in os.listdir(output):
+    #     video_path = os.path.join(output, video_dir)
+    #     if os.path.isdir(video_path):
+    #         for batch in os.listdir(video_path):
+    #             if batch.startswith("batch_"):
+    #                 upscale_path = os.path.join(upscaled, video_dir)
+    #                 os.makedirs(upscale_path, exist_ok=True)
+    #                 batch_path = os.path.join(video_path, batch)
+    #                 print(f"Upscaling batch: {batch_path}")
+    #                 print(f"Saving upscaled frames to: {upscale_path}")
+    #                 rvrt.infer(args, batch_path, upscale_path)
 
 if __name__ == "__main__":
     main()

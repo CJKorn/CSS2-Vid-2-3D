@@ -88,7 +88,7 @@ def parse_arguments():
     
     parser.add_argument('--task',
         type=str,
-        default='005_RVRT_videodeblurring_GoPro_16frames',
+        default='004_RVRT_videodeblurring_DVD_16frames',
         help='tasks: 001 to 006')
     
     parser.add_argument('--sigma',

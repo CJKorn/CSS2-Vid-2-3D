@@ -70,6 +70,7 @@ def infer(args, dataroot, outputdir):
         # inference
         print("Starting inference")
         with torch.no_grad():
+            # with torch.cuda.amp.autocast("cuda"):
             output = test_video(lq, model, args)
 
         test_results_folder = OrderedDict()
@@ -155,8 +156,10 @@ def prepare_model_dataset(args):
         print(f'downloading model {model_path}')
         open(model_path, 'wb').write(r.content)
 
-    pretrained_model = torch.load(model_path)
+    pretrained_model = torch.load(model_path, weights_only=False) #TODO
     model.load_state_dict(pretrained_model['params'] if 'params' in pretrained_model.keys() else pretrained_model, strict=True)
+
+    # model.half()
 
     # download datasets
     if os.path.exists(f'{args.temp}'):
