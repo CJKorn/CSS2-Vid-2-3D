@@ -1,9 +1,19 @@
 from Scripts.args import get_validated_args
 import cv2
+import torch
 import os
 import shutil
-os.environ['TORCH_CUDA_ARCH_LIST'] = "12.0" #TODO: Make not bad
+if torch.cuda.is_available() and not os.environ.get("TORCH_CUDA_ARCH_LIST_SET"):
+    # Gets capability for the current device
+    cap = torch.cuda.get_device_capability(0)
+    arch = f"{cap[0]}.{cap[1]}"
+    os.environ['TORCH_CUDA_ARCH_LIST'] = arch
+    os.environ["TORCH_CUDA_ARCH_LIST_SET"] = "1"
+    print(f"Automatically set TORCH_CUDA_ARCH_LIST to {arch}")
+elif not torch.cuda.is_available():
+    print("CUDA not available; default settings used")
 import RVRT.main_test_rvrt as rvrt
+# import FMANet.main_infer as fma
 
 def display_settings(args):
     print(f"Input path: {args.input}")
@@ -82,45 +92,40 @@ def extract_videos(args):
         extract_frames(args, args.input)
     print("Video processing complete!")
 
-def main():
-    args = get_validated_args()
-    display_settings(args)
-    check_temp_dir(args)
-    output = os.path.join(args.temp, "deblurred")
-    extracted_frames = os.path.join(args.temp, "extracted_frames")
-    os.makedirs(output, exist_ok=True)
-    os.makedirs(extracted_frames, exist_ok=True)
-    extract_videos(args)
-    os.makedirs(args.output, exist_ok=True)
+def inference(args, input_path, output_path):
     i = 0
-    for video_dir in os.listdir(extracted_frames):
-        video_path = os.path.join(extracted_frames, video_dir)
+    for video_dir in os.listdir(input_path):
+        video_path = os.path.join(input_path, video_dir)
         if os.path.isdir(video_path):
             for batch in os.listdir(video_path):
                 if batch.startswith("batch_"):
-                    deblur_path = os.path.join(output, video_dir)
+                    deblur_path = os.path.join(output_path, video_dir)
                     os.makedirs(deblur_path, exist_ok=True)
                     batch_path = os.path.join(video_path, batch)
                     i += 1
                     print(f"Processing batch {i}: {batch_path}")
                     print(f"Saving deblurred frames to: {deblur_path}")
                     rvrt.infer(args, batch_path, deblur_path)
+
+def main():
+    args = get_validated_args()
+    display_settings(args)
+    check_temp_dir(args)
+    deblurred = os.path.join(args.temp, "deblurred")
+    extracted_frames = os.path.join(args.temp, "extracted_frames")
+    os.makedirs(deblurred, exist_ok=True)
+    os.makedirs(extracted_frames, exist_ok=True)
+    extract_videos(args)
+    os.makedirs(args.output, exist_ok=True)
+    inference(args, extracted_frames, deblurred)
     # do upscaling (Uses too much memory)
     # args.task = "002_RVRT_videosr_bi_Vimeo_14frames"
-    # args.tile = [4,48,48]
+    # args.tile = [6,64,64]
+    # args.tile_overlap = [2,20,20]
+    # args.num_workers = 1
     # upscaled = os.path.join(args.temp, "upscaled")
     # os.makedirs(upscaled, exist_ok=True)
-    # for video_dir in os.listdir(output):
-    #     video_path = os.path.join(output, video_dir)
-    #     if os.path.isdir(video_path):
-    #         for batch in os.listdir(video_path):
-    #             if batch.startswith("batch_"):
-    #                 upscale_path = os.path.join(upscaled, video_dir)
-    #                 os.makedirs(upscale_path, exist_ok=True)
-    #                 batch_path = os.path.join(video_path, batch)
-    #                 print(f"Upscaling batch: {batch_path}")
-    #                 print(f"Saving upscaled frames to: {upscale_path}")
-    #                 rvrt.infer(args, batch_path, upscale_path)
+    # inference(args, deblurred, upscaled)
 
 if __name__ == "__main__":
     main()
