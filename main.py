@@ -14,6 +14,7 @@ if torch.cuda.is_available() and not os.environ.get("TORCH_CUDA_ARCH_LIST_SET"):
     print(f"Automatically set TORCH_CUDA_ARCH_LIST to {arch}")
 elif not torch.cuda.is_available():
     print("CUDA not available; default settings used")
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True,max_split_size_mb:128'
 
 #RVRT    
 import RVRT.main_test_rvrt as rvrt

@@ -247,21 +247,30 @@ class Trainer:
             return report.psnr
 
     def test(self, dataloader):
+        import gc
+        from torch.quantization import quantize_dynamic
         from FMANet.utils import denorm
         self.model.eval()
-
-        with torch.no_grad():
+        quantized_model = torch.quantization.quantize_dynamic(
+            self.model,
+            {torch.nn.Conv2d, torch.nn.Conv3d, torch.nn.Linear, torch.nn.BatchNorm2d}, 
+            dtype=torch.qint8
+        )
+        self.model = quantized_model
+        with torch.inference_mode():
             print("Starting test loop (AMP)...")
             print(f"Length of dataloader: {len(dataloader)}")
             for idx, (lr_blur_seq, filename) in enumerate(dataloader):
+                torch.cuda.empty_cache()
+                gc.collect()
                 print(f"Processing batch: {idx}")
-                lr_blur_seq = lr_blur_seq.cuda()
+                lr_blur_seq = lr_blur_seq.cuda(non_blocking=True)
                 
                 # Run the forward pass in half precision
-                with torch.autocast(device_type="cuda"):
+                with torch.autocast(device_type="cuda", dtype=torch.float16):
                     result_dict = self.model(lr_blur_seq)
                 
-                output = result_dict['output']
+                output = result_dict['output'].cpu()
                 output = output.squeeze(dim=0)
                 output = denorm(output)
 
