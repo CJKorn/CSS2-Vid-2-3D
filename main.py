@@ -61,9 +61,9 @@ def extract_frames(args, file):
         if corrected_batch_size > 0:
             batch_dir = os.path.join(temp_dir, f"batch_{batch_count}")
             os.makedirs(batch_dir, exist_ok=True)
-            frame_path = os.path.join(batch_dir, f"frame{n}.jpg")
+            frame_path = os.path.join(batch_dir, f"frame{n}.png")
         else:
-            frame_path = os.path.join(temp_dir, "batch_0", f"frame{n}.jpg")
+            frame_path = os.path.join(temp_dir, "batch_0", f"frame{n}.png")
         
         if n % args.frame_interval == 0:
             cv2.imwrite(frame_path, frame)
@@ -115,6 +115,7 @@ def inference(args, input_path, output_path, config):
                     # rvrt.infer(args, batch_path, full_output_path)
                     config.dataset_path = batch_path
                     config.save_dir = full_output_path
+                    config.custom_path = batch_path
                     fma.test_custom(config, args)
 
 def main():

@@ -1,12 +1,14 @@
 import os
 import time
 import torch
+from torch.cuda.amp import autocast
 
 from FMANet.utils import Train_Report, TestReport, SaveManager
 
 
 class Trainer:
     def __init__(self, config, model, args):
+        # print(config.lr)
         self.config = config
         self.model = model
         if self.config.save_train_img:
@@ -249,14 +251,17 @@ class Trainer:
         self.model.eval()
 
         with torch.no_grad():
-            print("Starting test loop...")
+            print("Starting test loop (AMP)...")
+            print(f"Length of dataloader: {len(dataloader)}")
             for idx, (lr_blur_seq, filename) in enumerate(dataloader):
-                print(f"Prooocessing batch: {idx}")
+                print(f"Processing batch: {idx}")
                 lr_blur_seq = lr_blur_seq.cuda()
-
-                result_dict = self.model(lr_blur_seq)
+                
+                # Run the forward pass in half precision
+                with torch.autocast(device_type="cuda"):
+                    result_dict = self.model(lr_blur_seq)
+                
                 output = result_dict['output']
-
                 output = output.squeeze(dim=0)
                 output = denorm(output)
 

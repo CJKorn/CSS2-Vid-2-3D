@@ -59,7 +59,7 @@ def parse_arguments():
     
     parser.add_argument('-BS', '--batch-size',
         type=int,
-        default=0,
+        default=60,
         help='Batch size for processing')
     
     parser.add_argument('-UF', '--upscale', 

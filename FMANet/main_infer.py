@@ -60,7 +60,7 @@ def test(config):
 
 def test_custom(config, args):
     from FMANet.data import Custom_Dataset
-
+    print(f'Testing on custom dataset: {config.dataset_path}')
     data = Custom_Dataset(config)
     test_dataloader = torch.utils.data.DataLoader(data, batch_size=1, drop_last=False, shuffle=False, num_workers=int(config.nThreads), pin_memory=True)
     model = FMANet(config=config)
