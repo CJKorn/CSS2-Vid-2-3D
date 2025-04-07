@@ -251,26 +251,14 @@ class Trainer:
         from torch.quantization import quantize_dynamic
         from FMANet.utils import denorm
         self.model.eval()
-        quantized_model = torch.quantization.quantize_dynamic(
-            self.model,
-            {torch.nn.Conv2d, torch.nn.Conv3d, torch.nn.Linear, torch.nn.BatchNorm2d}, 
-            dtype=torch.qint8
-        )
-        self.model = quantized_model
-        with torch.inference_mode():
-            print("Starting test loop (AMP)...")
-            print(f"Length of dataloader: {len(dataloader)}")
+
+        with torch.no_grad():
             for idx, (lr_blur_seq, filename) in enumerate(dataloader):
-                torch.cuda.empty_cache()
-                gc.collect()
-                print(f"Processing batch: {idx}")
-                lr_blur_seq = lr_blur_seq.cuda(non_blocking=True)
-                
-                # Run the forward pass in half precision
-                with torch.autocast(device_type="cuda", dtype=torch.float16):
-                    result_dict = self.model(lr_blur_seq)
-                
-                output = result_dict['output'].cpu()
+                lr_blur_seq = lr_blur_seq.cuda()
+
+                result_dict = self.model(lr_blur_seq)
+                output = result_dict['output']
+
                 output = output.squeeze(dim=0)
                 output = denorm(output)
 
@@ -279,7 +267,6 @@ class Trainer:
                 filename = os.path.basename(filename)
                 filename = os.path.join(self.config.save_dir, 'test', filepath, filename)
                 self.save_manager.save_image(output, filename)
-                print(f"Saved image to: {filename}")
 
     def test_quantitative_result(self, gt_dir, output_dir, image_border):
         import cv2

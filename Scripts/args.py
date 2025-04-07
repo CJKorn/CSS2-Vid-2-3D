@@ -59,7 +59,7 @@ def parse_arguments():
     
     parser.add_argument('-BS', '--batch-size',
         type=int,
-        default=60,
+        default=0,
         help='Batch size for processing')
     
     parser.add_argument('-UF', '--upscale', 
@@ -90,6 +90,11 @@ def parse_arguments():
         type=str,
         default='004_RVRT_videodeblurring_DVD_16frames',
         help='tasks: 001 to 006')
+    
+    parser.add_argument('--tiles',
+        type=int,
+        default=1,
+        help='Number of tiles per frame (must be a perfect square: e.g. 1, 4, 9, or 16)')
     
     parser.add_argument('--sigma',
         type=int,

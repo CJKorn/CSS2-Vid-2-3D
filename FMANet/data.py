@@ -3,6 +3,7 @@ import cv2
 import glob
 import torch
 import random
+import re
 
 import numpy as np
 
@@ -162,49 +163,48 @@ class Custom_Dataset:
         self.num_seq = self.config.num_seq
 
         bath_path = os.path.join(config.custom_path)
-        print(f"[DEBUG] Custom dataset bath_path: {bath_path}")
 
         self.seq_path = self.get_seq_path(bath_path)
         self.num_data = len(self.seq_path)
-        print(f"[DEBUG] Number of sequences found: {self.num_data}")
-        if self.num_data == 0:
-            print("[DEBUG] No sequences found. Double-check custom_path and file naming.")
+
+        print(f'num custom dataset: {self.num_data}')
 
     def __getitem__(self, idx):
-        print(f"[DEBUG] __getitem__ idx: {idx}")
+        # input
         lr_blur_path = self.seq_path[idx]
-        print(f"[DEBUG] lr_blur_path for idx {idx}: {lr_blur_path}")
         lr_blur_seq = [cv2.imread(path) for path in lr_blur_path]
-        for i, img in enumerate(lr_blur_seq):
-            if img is None:
-                print(f"[DEBUG] Failed to read image at: {lr_blur_path[i]}")
         lr_blur_seq = np.stack(lr_blur_seq, axis=0)
 
         filename = lr_blur_path[self.num_seq // 2]
-        print(f"[DEBUG] Returning filename: {filename}")
         return self.np2tensor(lr_blur_seq), filename
 
     def np2tensor(self, x):
+        # x shape: [T, H, W, C]
+
+        # reshape to [C, T, H, W]
         ts = (3, 0, 1, 2)
         x = torch.Tensor(x.transpose(ts).astype(float)).mul_(1.0)
+        # normalization [0,1]
         x = x / 255.0
+
         return x
 
     def get_seq_path(self, bath_path):
         seq_list = []
-        frame_list = sorted(glob.glob(os.path.join(bath_path, '*.png')))
-        print(f"[DEBUG] Found {len(frame_list)} frames in custom_path.")
+        frame_list = sorted(glob.glob(os.path.join(bath_path, '*.png')), key=natural_key)
         start = (self.num_seq - 1) // 2
         end = len(frame_list) - (self.num_seq - 1) // 2
-        print(f"[DEBUG] Using start index: {start}, end index: {end}")
         for i in range(start, end):
             frame_seq = []
             for seq_num in range(self.num_seq):
                 frame_seq.append(frame_list[i + seq_num - start])
-            print(f"[DEBUG] Sequence {i - start}: {frame_seq}")
             seq_list.append(frame_seq)
         return seq_list
 
     def __len__(self):
         return self.num_data
+    
 
+def natural_key(string_):
+    """Return a list of integers and text fragments to allow natural sorting."""
+    return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', string_)]
