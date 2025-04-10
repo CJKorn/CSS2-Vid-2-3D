@@ -516,6 +516,9 @@ class Net_R(torch.nn.Module):
         ffn_expansion_factor = config.ffn_expansion_factor
         bias = config.bias
         scale = config.scale
+        self.scale = config.scale
+
+        # self.final_conv = nn.Conv2d(dim, in_channels, kernel_size=3, padding=1, stride=1, bias=bias)
 
         self.feature_extractor = nn.Sequential(nn.Conv3d(in_channels+dim, dim, kernel_size=[1,3,3], padding=[0,1,1], stride=1, bias=bias),
                                                nn.LeakyReLU(negative_slope=0.2, inplace=True),
@@ -578,9 +581,10 @@ class Net_R(torch.nn.Module):
             F, Fw, f = blk(F, Fw, f, F0_c, KD)
 
         # pixel shuffle upsample
-        res = self.relu(self.res_conv1(Fw))
-        res = self.upsample(res)
-        res = self.res_conv2(res)
+        if (self.scale != 1):
+            res = self.relu(self.res_conv1(Fw))
+            res = self.upsample(res)
+            res = self.res_conv2(res)
 
         KR = rearrange(Fw, 'b (c t) h w -> b c t h w', t=T)
         KR = self.r_conv(KR)
@@ -591,7 +595,10 @@ class Net_R(torch.nn.Module):
 
         # flow-guided dynamic upsampling
         _, warped_X = self.bwarp(x, f_X)
-        output = self.duf(warped_X, KR) + res
+        if self.scale != 1:
+            output = self.duf(warped_X, KR) + res
+        else:
+            output = self.final_conv(Fw) 
         anchor = self.a_conv(F)
 
         return output, warped_X, anchor
