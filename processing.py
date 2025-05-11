@@ -6,6 +6,9 @@ import numpy as np
 import random
 import shutil
 from tqdm import tqdm
+import ruptures as rpt
+from skimage.metrics import structural_similarity as ssim
+import concurrent.futures
 
 def extract_frames(args, file):
     print(f"Processing video: {file}")
@@ -214,3 +217,174 @@ def combine_frames_to_video(args, stitched_dir, output_dir):
                 print(f"Error reading frame: {frame_path}")
         out_writer.release()
         print(f"Created video: {output_video_path}")
+
+def score_BRISQUE(root_folder): #Unused
+    from brisque import BRISQUE
+    import numpy as np
+    from PIL import Image
+    import os
+
+    brisque_obj = BRISQUE(url=False)
+
+    for folder, _, files in os.walk(root_folder):
+        for filename in files:
+            ext = os.path.splitext(filename)[1].lower()
+            file_path = os.path.join(folder, filename)
+            try:
+                img = Image.open(file_path)
+                ndarray = np.asarray(img)
+                score = brisque_obj.score(img=ndarray)
+                print(f"Image: {file_path}, BRISQUE Score: {score}")
+            except Exception as e:
+                print(f"Failed to process {file_path}: {e}")
+
+def find_image_files(root_folder):
+    all_files = []
+    for folder, _, files in os.walk(root_folder):
+        for filename in files:
+            ext = os.path.splitext(filename)[1].lower()
+            if ext in ['.png', '.jpg', '.jpeg']:
+                if os.path.splitext(filename)[0].isdigit():
+                    file_path = os.path.join(folder, filename)
+                    all_files.append(file_path)
+    all_files.sort(key=lambda f: int(os.path.splitext(os.path.basename(f))[0]))
+
+    return all_files
+
+def score_laplacian(root_folder):
+    all_files = find_image_files(root_folder)
+    scores = []
+    for file_path in tqdm(all_files, desc="Analyzing images (Laplacian)", unit="image"):
+        img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+        laplacian_var = cv2.Laplacian(img, cv2.CV_64F).var()
+        scores.append((file_path, laplacian_var))
+
+    return scores
+
+def _compare_pair(paths):
+    path1, path2 = paths
+    img1 = cv2.imread(path1, cv2.IMREAD_GRAYSCALE)
+    img2 = cv2.imread(path2, cv2.IMREAD_GRAYSCALE)
+    ssim_score = 0.0
+
+    if img1 is None:
+        return (path1, path2, ssim_score)
+    if img2 is None:
+        return (path1, path2, ssim_score)
+
+    try:
+        ssim_score, _ = ssim(img1, img2, full=True, data_range=img1.max() - img1.min())
+    except ValueError as ve:
+         print(f"ValueError between {os.path.basename(path1)} ({img1.shape}) and {os.path.basename(path2)} ({img2.shape}): {ve}")
+         ssim_score = 0.0
+    except Exception as e:
+         print(f"Error calculating SSIM between {os.path.basename(path1)} and {os.path.basename(path2)}: {e}")
+         ssim_score = 0.0
+    ssim_score = max(0, ssim_score)
+
+    return (path1, path2, ssim_score)
+
+def _calculate_weighted_ssim_for_frame(args):
+    index_n, all_files, nplus = args
+    frame_n_path = all_files[index_n]
+    total_weighted_ssim = 0.0
+    total_weight = 0.0
+    for k in range(1, nplus + 1):
+        index_nk = index_n + k
+        if index_nk < len(all_files):
+            frame_nk_path = all_files[index_nk]
+            # Calculate SSIM for the pair (n, n+k)
+            _, _, ssim_score = _compare_pair((frame_n_path, frame_nk_path))
+            weight = float(nplus - k + 1)
+
+            total_weighted_ssim += ssim_score * weight
+            total_weight += weight
+        else:
+            break
+    weighted_average_ssim = total_weighted_ssim / total_weight if total_weight > 0 else 0
+    return (frame_n_path, weighted_average_ssim)
+
+
+def similarity(root_folder, nplus, max_workers=6):
+    all_files = find_image_files(root_folder)
+    num_files = len(all_files)
+
+    print(f"Comparing frames for similarity using weighted SSIM (nplus={nplus})...")
+    tasks_args = [(i, all_files, nplus) for i in range(num_files)]
+
+    similarity_results = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        results_iterator = executor.map(_calculate_weighted_ssim_for_frame, tasks_args)
+        similarity_results = list(tqdm(results_iterator, total=len(tasks_args), desc=f"Calculating weighted SSIM (nplus={nplus})", unit="frame"))
+
+    # similarity_results will be a list of tuples: [(frame_path, weighted_ssim_score), ...]
+    return similarity_results
+
+def cluster(root_folder, similarity_scores):
+    all_files = find_image_files(root_folder)
+    num_files = len(all_files)
+    scores_only_list = []  # Fixed indentation here
+    for _, score in similarity_scores:
+        scores_only_list.append(float(score))
+
+    scores_only = np.array(scores_only_list).reshape(-1, 1)
+    n_scores = scores_only.shape[0]
+
+    change_points_indices = []
+
+    print(f"Performing change point detection on {n_scores} similarity scores...")
+    # model="rbf" is often good for changes in mean and variance.
+    # model="l2" detects changes in the mean.
+    algo = rpt.Pelt(model="rbf").fit(scores_only)
+
+    # Higher penalty = fewer change points.
+    # Common heuristics: 3*log(n), 2*log(n). BIC/AIC can also be used.
+    penalty_value = 0.5 * np.log(n_scores)
+    print(f"Using penalty value: {penalty_value:.2f}")
+
+    try:
+        predicted_bkps = algo.predict(pen=penalty_value)
+        print(f"Ruptures detected breakpoints (end of segments): {predicted_bkps}")
+        if predicted_bkps and predicted_bkps[-1] == n_scores:
+                change_points_indices = [cp - 1 for cp in predicted_bkps[:-1]]
+        else:
+                change_points_indices = [cp - 1 for cp in predicted_bkps if cp < n_scores]
+
+        print(f"Detected change point indices (positions *before* change): {change_points_indices}")
+
+    except Exception as e:
+        print(f"Error during change point detection: {e}")
+        change_points_indices = []
+    return change_points_indices
+
+def select_frames(args, root_folder, scores, change_points_indices):
+    # I would do this with a hashmap but python is stupuid
+    all_files = find_image_files(root_folder)
+    selected_frames = []
+    cluster_selection_count = len(scores) * args.cluster_percent / len(change_points_indices)
+    num_frames_to_select = max(1, int(len(scores) * args.greedy_percent))
+    sorted_indices = sorted(range(len(scores)), key=lambda i: scores[i][1], reverse=True)
+    selected_indices = sorted_indices[:num_frames_to_select]
+    selected_frames = [ scores[i][0] for i in selected_indices ]
+    current_cluster = []
+    # Then do clustering stuff
+    for i in range(len(scores)):
+        current_cluster.append(scores[i])
+        if i in change_points_indices:
+            select_count = min(cluster_selection_count, len(current_cluster))
+            sorted_indices = sorted(
+                range(len(current_cluster)),
+                key=lambda j: current_cluster[j][1],
+                reverse=True
+            )
+            count = 0
+            for j in sorted_indices:
+                frame_path = current_cluster[j][0]
+                if frame_path in selected_frames:
+                    continue
+                selected_frames.append(frame_path)
+                count += 1
+                if count >= select_count:
+                    break
+            current_cluster = []
+    return selected_frames
