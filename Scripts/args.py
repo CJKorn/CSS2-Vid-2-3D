@@ -33,24 +33,9 @@ def parse_arguments():
         action='store_true',
         help='Skips the motion blur removal processing')
     
-    parser.add_argument('-BT', '--blur-threshold', 
-        type=float, 
-        default=0.5,
-        help='Sets threshold for blurry frame detection (0.0-1.0)')
-    
     parser.add_argument('-KSF', '--keep-similar', 
         action='store_true',
         help='Keeps frames even if they\'re similar')
-    
-    parser.add_argument('-ST', '--similarity', 
-        type=float, 
-        default=0.95,
-        help='Sets threshold for frame similarity detection (0.0-1.0)')
-    
-    parser.add_argument('-FI', '--frame-interval', 
-        type=int,  
-        default=1,
-        help='Extract frames at fixed intervals (in frames)')
     
     parser.add_argument('-TI', '--time-interval', 
         type=float, 
@@ -62,63 +47,42 @@ def parse_arguments():
         default=0,
         help='Batch size for processing')
     
-    parser.add_argument('-UF', '--upscale', 
-        type=float, 
-        default=1.0,
-        help='Factor by which to upscale output frames (1.0-4.0)')
-    
-    parser.add_argument('-EF', '--format', 
-        choices=['png', 'jpg', 'tiff'], 
-        default='png',
-        help='Format for exported frames')
-    
-    parser.add_argument('-CL', '--compression', 
-        type=int, 
-        default=6,
-        choices=range(1, 11),
-        help='Compression level for output images (1-10)')
-    
     parser.add_argument('-MF', '--max-frames', 
         default='All',
         help='Maximum number of frames to extract')
     
-    parser.add_argument('-CC', '--color-correction', 
+    parser.add_argument('-GP', '--greedy-percent', 
+        type=float,
+        default=0.15,
         action='store_true',
-        help='Apply color correction across frames for consistency')
+        help='Percent of frames to select from greedy selection')
+
+    parser.add_argument('-CP', '--cluster-percent', 
+        type=float,
+        default=0.1,
+        action='store_true',
+        help='Percent of frames to select from clusters')
     
     parser.add_argument('--task',
         type=str,
-        default='004_RVRT_videodeblurring_DVD_16frames',
+        default='FMANet',
         help='tasks: 001 to 006')
     
-    parser.add_argument('--sigma',
+    parser.add_argument('--tiles',
         type=int,
-        default=0,
-        help='noise level for denoising: 10, 20, 30, 40, 50')
+        default=1,
+        help='Number of tiles per frame for FMA-NET (must be a perfect square: e.g. 1, 4, 9, or 16)')
     
     parser.add_argument('--tile',
         type=int, nargs='+',  
         default=[0,256,256],
-        help='Tile size, [0,0,0] for no tile during testing (testing as a whole)')
+        help='Tile size, [0,0,0] for no tile during testing (for RVRT)')
     
     parser.add_argument('--tile_overlap',
         type=int,
         nargs='+',
         default=[2,64,64],
-        help='Overlapping of different tiles')
-    
-    parser.add_argument('--num_workers',
-        type=int,
-        default=16,
-        help='number of workers in data loading')
-    
-    parser.add_argument('--save_result',
-        action='store_true',
-        help='save resulting image')
-    
-    parser.add_argument('--scan_subdirectories',
-        action='store_true',
-        help='Scan subdirectories for frames instead of only the top directory')
+        help='Overlapping of different tiles for RVRT')
     
     return parser.parse_args()
 

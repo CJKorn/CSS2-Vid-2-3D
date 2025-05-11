@@ -9,3 +9,8 @@ numpy
 pandas
 opencv-python
 logger
+matplotlib
+ruptures
+skimage
+concurrent
+shutil

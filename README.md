@@ -1,5 +1,5 @@
 # CSS2-Vid-2-3D
-A video restoration project based on [RVRT (Recurrent Video Restoration Transformer with Guided Deformable Attention)](https://github.com/JingyunLiang/RVRT), enabling higher quality 3D reconstruction and imaging from low quality input videos.
+A video restoration project based on [RVRT](https://github.com/JingyunLiang/RVRT) and [FMA-Net](https://github.com/KAIST-VICLab/FMA-Net), enabling higher quality 3D reconstruction and imaging from low quality input videos.
 
 ## Requirements
 > - Python >= 3.8
@@ -9,7 +9,6 @@ A video restoration project based on [RVRT (Recurrent Video Restoration Transfor
 
 ### Hardware Requirements
 Tested with an RTX 5080 16GB and 32GB of ram however with more aggressive tiling and batching this may be lowered at the cost of quality.
-12GB of VRAM has been tested with a minimal drop in quality with 64x64 tiles and a batch size of 60 and a resolution of 2160 × 3840.
 
 ## Getting Started
 **Clone the Repository**
@@ -27,38 +26,42 @@ pip install -r requirements.txt
 
 **Download Model Files**
 ```
-Download all .pth files from https://github.com/JingyunLiang/RVRT/releases
+Download all .pth files from https://github.com/KAIST-VICLab/FMA-Net?tab=readme-ov-file
+(RVRT files in https://github.com/JingyunLiang/RVRT/releases if you want to use RVRT)
 Place them in the folder named ckpt
 ```
 
 **Inference**
 ```
-Place your video(s) in the input folder
+Place your video(s) in the input folder (may not work with multiple)
 python main.py [Command line arguments]
 ```
 
+**Using RVRT**
+
+In out testing RVRT has shown worse performance than FMA-Net, if you wish to use it add an RVRT task to the command line. (example: --task 004_RVRT_videodeblurring_DVD_16frames)
+
 ## Command Line Arguments
-| Name                     | CMD  | Long CMD           | Description                                             | Default      |
-| ------------------------ | ---- | ------------------ | ------------------------------------------------------- | ------------ |
-| Input Path               | -I   | --input            | Specifies the input path of the video                   | (CWD)\input  |
-| Output Path              | -O   | --output           | Specifies the output path of the frames                 | (CWD)\output |
-| Temp Path                | -T   | --temp             | Specifies the temp directory                            | (CWD)\temp   |
-| Model Path               | -M   | --model            | Specifies the directory of the models                   | (CWD)\ckpt   |
-| Skip Motion Blur Removal | -SMB | --skip-motion-blur | Skips the motion blur removal processing                | Off          |
-| Blur Threshold           | -BT  | --blur-threshold   | Sets threshold for blurry frame detection (0.0-1.0)     | 0.5          |
-| Keep Similar Frames      | -KSF | --keep-similar     | Keeps frames even if they're similar                    | Off          |
-| Similarity Threshold     | -ST  | --similarity       | Sets threshold for frame similarity detection (0.0-1.0) | 0.95         |
-| Frame Interval           | -FI  | --frame-interval   | Extract frames at fixed intervals (in frames)           | 1            |
-| Time Interval            | -TI  | --time-interval    | Extract frames at fixed time intervals (in seconds)     | 0            |
-| Batch Size               | -BS  | --batch-size       | Batch size for processing                               | 0            |
-| Export Format            | -EF  | --format           | Format for exported frames (png/jpg/tiff)               | png          |
-| Compression Level        | -CL  | --compression      | Compression level for output images (1-10)              | 6            |
-| Max Frames               | -MF  | --max-frames       | Maximum number of frames to extract                     | All          |
-| Color Correction         | -CC  | --color-correction | Apply color correction across frames for consistency    | Off          |
-| EXIF Data                | -ED  | --exif             | Include camera EXIF data in output frames if available  | On           |
+| Name                       | CMD                                  | Description                                                               | Default                                           |
+| -------------------------- | ------------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------- |
+| Input Path                 | -I, --input                          | Specifies the input path of the video                                     | (CWD)\input                                       |
+| Output Path                | -O, --output                         | Specifies the output path of the frames                                   | (CWD)\output                                      |
+| Temp Path                  | -T, --temp                           | Specifies the temp directory                                              | (CWD)\temp                                        |
+| Model Path                 | -M, --model                          | Specifies the directory of the models                                     | (CWD)\ckpt                                        |
+| Skip Motion-Blur Removal   | -SMB, --skip-motion-blur             | Skips the motion blur removal processing                                  | False                                             |
+| Keep Similar Frames        | -KSF, --keep-similar                 | Keeps frames even if they're similar                                       | False                                             |
+| Time Interval              | -TI, --time-interval                 | Extract frames at fixed time intervals (in seconds)                       | 0.0                                               |
+| Batch Size                 | -BS, --batch-size                    | Batch size for processing                                                 | 0                                                 |
+| Max Frames                 | -MF, --max-frames                    | Maximum number of frames to extract                                        | All                                               |
+| Greedy Selection Percent   | -GP, --greedy-percent                | Percent of frames to select from greedy selection                         | 0.15                                              |
+| Cluster Selection Percent  | -CP, --cluster-percent               | Percent of frames to select from clusters                                 | 0.1                                               |
+| Task                       | --task                               | RVRT task name (e.g. 004_RVRT_videodeblurring_DVD_16frames)               | 004_RVRT_videodeblurring_DVD_16frames             |
+| Number of Tiles            | --tiles                              | Number of tiles per frame for FMA-NET (must be a perfect square)          | 1                                                 |
+| Tile Size                  | --tile                               | Tile size [depth,height,width], [0,0,0] for no tiling during testing       | [0,256,256]                                       |
+| Tile Overlap               | --tile_overlap                       | Overlap of different tiles for RVRT                                        | [2,64,64]                                         |
 
 ## Acknowledgements and License
-This project builds upon the RVRT (Recurrent Video Restoration Transformer) framework. We've adapted the codebase for our specific use case of enhancing video quality for 3D reconstruction.
+This project builds upon RVRT (Recurrent Video Restoration Transformer) and FMA-Net. We've adapted the codebase for our specific use case of enhancing video quality for 3D reconstruction.
 
 ### Original RVRT Citation
 ```
@@ -70,15 +73,23 @@ This project builds upon the RVRT (Recurrent Video Restoration Transformer) fram
 }
 ```
 
-### License Information
-This project is released under the CC-BY-NC license, consistent with the original RVRT project.
+### Original FMA-Net Citation
+```
+@InProceedings{Youk_2024_CVPR,
+    author    = {Youk, Geunhyuk and Oh, Jihyong and Kim, Munchurl},
+    title     = {FMA-Net: Flow-Guided Dynamic Filtering and Iterative Feature Refinement with Multi-Attention for Joint Video Super-Resolution and Deblurring},
+    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+    month     = {June},
+    year      = {2024},
+    pages     = {44-55}
+}
+```
 
-The original RVRT codebase incorporates code from several sources with different licenses:
+## License
 
-[KAIR](https://github.com/cszn/KAIR) (MIT License)
-[BasicSR](https://github.com/xinntao/BasicSR) (Apache 2.0 License)
-[Video Swin Transformer](https://github.com/SwinTransformer/Video-Swin-Transformer) (Apache 2.0 License)
-[mmediting](https://github.com/open-mmlab/mmediting) (Apache 2.0 License)
-Our modifications and additional code for 3D reconstruction purposes maintain compatibility with these license requirements.
+This repository combines:
+- RVRT (CC BY-NC 4.0)  
+- BasicSR, Video-Swin-Transformer, mmediting (Apache 2.0)  
+- FMA-Net (MIT)
 
-For more details on the original implementation, please visit the [RVRT GitHub repository](https://github.com/JingyunLiang/RVRT).
+**The entire work is being distributed under CC BY-NC 4.0**

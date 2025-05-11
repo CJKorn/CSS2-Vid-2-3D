@@ -175,3 +175,4 @@ input/*
 output/*
 temp/*
 ckpt/*
+.vscode/
