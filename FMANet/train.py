@@ -2,7 +2,7 @@ import os
 import time
 import torch
 from torch.cuda.amp import autocast
-
+import tqdm
 from FMANet.utils import Train_Report, TestReport, SaveManager
 
 
@@ -253,7 +253,7 @@ class Trainer:
         self.model.eval()
 
         with torch.no_grad():
-            for idx, (lr_blur_seq, filename) in enumerate(dataloader):
+            for idx, (lr_blur_seq, filename) in enumerate(tqdm.tqdm(dataloader, desc="Deblurrring Batch")):
                 lr_blur_seq = lr_blur_seq.cuda()
 
                 result_dict = self.model(lr_blur_seq)

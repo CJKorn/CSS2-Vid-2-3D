@@ -70,6 +70,9 @@ def inference(args, input_path, output_path, config):
                     else:
                         rvrt.infer(args, batch_path, full_output_path)
 
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
 def plot_similarity_scores(frame_indices, scores_only, change_point_indices, plot_save_path):
     plt.figure(figsize=(15, 7))
     plt.plot(frame_indices, scores_only, marker='o', linestyle='-', label='Similarity Score')
@@ -137,7 +140,7 @@ def main():
                 shutil.copy(src_path, dest_path)
         return
     scores = processing.score_laplacian(stitched_frames)
-    similarity_scores = processing.similarity(stitched_frames, 3) #higher is better but slower and with diminishing returns, 3 is usually good enough
+    similarity_scores = processing.similarity(stitched_frames, 3) # higher is better but slower and with diminishing returns, 3 is usually good enough
     scores_only = [score for _, score in similarity_scores]
     frame_indices = range(len(scores_only))
     change_point_indices = processing.cluster(stitched_frames, similarity_scores)
@@ -156,7 +159,14 @@ def main():
         output_subdir = os.path.join(args.output, video_folder)
         os.makedirs(output_subdir, exist_ok=True)
         dest_frame = os.path.join(output_subdir, os.path.basename(frame_path))
-        shutil.copy(frame_path, dest_frame)
+        if (not (args.downscale)):
+            shutil.copy(frame_path, dest_frame)
+        else:
+            img = cv2.imread(frame_path)
+            h, w = img.shape[:2]
+            new_w, new_h = max(1, w // 4), max(1, h // 4)
+            downscaled = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+            cv2.imwrite(dest_frame, downscaled)
 
     # combine_frames_to_video(args, stitched_frames, args.output)
     # do upscaling (Uses too much memory)
