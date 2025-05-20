@@ -33,6 +33,10 @@ def parse_arguments():
         action='store_true',
         help='Skips the motion blur removal processing')
     
+    parser.add_argument('-DS', '--downscale',
+        action='store_true',
+        help='Downscales the frames to 1/4 of the original size after FMA-NET 4x upscale')
+
     parser.add_argument('-KSF', '--keep-similar', 
         action='store_true',
         help='Keeps frames even if they\'re similar')
@@ -54,13 +58,11 @@ def parse_arguments():
     parser.add_argument('-GP', '--greedy-percent', 
         type=float,
         default=0.15,
-        action='store_true',
         help='Percent of frames to select from greedy selection')
 
     parser.add_argument('-CP', '--cluster-percent', 
         type=float,
         default=0.1,
-        action='store_true',
         help='Percent of frames to select from clusters')
     
     parser.add_argument('--task',
@@ -84,6 +86,12 @@ def parse_arguments():
         default=[2,64,64],
         help='Overlapping of different tiles for RVRT')
     
+
+    parser.add_argument('-FI', '--frame-interval', 
+        type=int,  
+        default=1,
+        help='Extract frames at fixed intervals (in frames)')
+
     return parser.parse_args()
 
 def validate_args(args):
@@ -113,31 +121,6 @@ def validate_args(args):
         except OSError as e:
             print(f"Error creating temp directory: {e}")
             return False
-    
-    # Validate numeric ranges
-    if not 0.0 <= args.blur_threshold <= 1.0:
-        print(f"Error: Blur threshold must be between 0.0 and 1.0")
-        return False
-    
-    if not 0.0 <= args.similarity <= 1.0:
-        print(f"Error: Similarity threshold must be between 0.0 and 1.0")
-        return False
-    
-    if not 1.0 <= args.upscale <= 4.0:
-        print(f"Error: Upscale factor must be between 1.0 and 4.0")
-        return False
-    
-    # Handle max frames 
-    if args.max_frames != 'All':
-        try:
-            args.max_frames = int(args.max_frames)
-            if args.max_frames <= 0:
-                print(f"Error: Max frames must be greater than 0")
-                return False
-        except ValueError:
-            print(f"Error: Max frames must be 'All' or a positive integer")
-            return False
-    
     return True
 
 def get_validated_args():

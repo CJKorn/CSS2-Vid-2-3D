@@ -62,7 +62,7 @@ def extract_frames(args, file):
                 for j in range(grid_dim):
                     tile_index = i * grid_dim + j
                     y1 = i * tile_height
-                    x1 = j * tile_width
+                    x1 = j * tile_width 
                     y2 = (i + 1) * tile_height if i < grid_dim - 1 else height
                     x2 = (j + 1) * tile_width if j < grid_dim - 1 else width
                     tile = frame[y1:y2, x1:x2]
@@ -154,7 +154,7 @@ def extract_videos(args):
     print(f"Reading video(s) from: {args.input}")
     if os.path.isdir(args.input):
         for file in os.listdir(args.input):
-            if file.endswith(".mp4"):
+            if file.lower().endswith((".mp4", ".mov")):
                 extract_frames(args, os.path.join(args.input, file))
     else:
         extract_frames(args, args.input)
@@ -305,12 +305,12 @@ def _calculate_weighted_ssim_for_frame(args):
     return (frame_n_path, weighted_average_ssim)
 
 
-def similarity(root_folder, nplus, max_workers=6):
+def similarity(root_folder, nplus, max_workers=3):
     all_files = find_image_files(root_folder)
     num_files = len(all_files)
 
     print(f"Comparing frames for similarity using weighted SSIM (nplus={nplus})...")
-    tasks_args = [(i, all_files, nplus) for i in range(num_files)]
+    tasks_args = [(i, all_files, nplus) for i in range(num_files - 1)]
 
     similarity_results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
