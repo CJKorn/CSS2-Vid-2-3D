@@ -367,6 +367,7 @@ def select_frames(args, root_folder, scores, change_points_indices):
     selected_indices = sorted_indices[:num_frames_to_select]
     selected_frames = [ scores[i][0] for i in selected_indices ]
     # Then do clustering stuff
+    current_cluster_items = []
     for i in range(len(scores)):
         current_cluster_items.append(scores[i])
         if i in change_points_indices or (i == len(scores) - 1 and current_cluster_items):

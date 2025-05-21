@@ -65,7 +65,7 @@ def parse_arguments():
         default=0.25,
         help='Percent of frames to select from clusters')
     
-    parser.add_argument('-DP' '--dumb_percent',
+    parser.add_argument('-DP', '--dumb_percent',
         type=float,
         default=0.1,
         help='Percent of frames to select from dumb selection')
