@@ -121,7 +121,7 @@ def main():
     os.makedirs(args.output, exist_ok=True)
     if args.skip_motion_blur:
         print("Skipping motion blur removal")
-        shutil.copytree(args.input, deblurred, dirs_exist_ok=True)
+        shutil.copytree(extracted_frames, deblurred, dirs_exist_ok=True)
     else:
         print("Removing motion blur")
         inference(args, extracted_frames, deblurred, config)

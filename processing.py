@@ -366,25 +366,50 @@ def select_frames(args, root_folder, scores, change_points_indices):
     sorted_indices = sorted(range(len(scores)), key=lambda i: scores[i][1], reverse=True)
     selected_indices = sorted_indices[:num_frames_to_select]
     selected_frames = [ scores[i][0] for i in selected_indices ]
-    current_cluster = []
     # Then do clustering stuff
+    current_cluster_items = []
     for i in range(len(scores)):
-        current_cluster.append(scores[i])
-        if i in change_points_indices:
-            select_count = min(cluster_selection_count, len(current_cluster))
-            sorted_indices = sorted(
-                range(len(current_cluster)),
-                key=lambda j: current_cluster[j][1],
-                reverse=True
-            )
-            count = 0
-            for j in sorted_indices:
-                frame_path = current_cluster[j][0]
-                if frame_path in selected_frames:
+        current_cluster_items.append(scores[i])
+        if i in change_points_indices or (i == len(scores) - 1 and current_cluster_items):
+            if not current_cluster_items:
+                continue
+            select_count_this_cluster = min(cluster_selection_count, len(current_cluster_items))
+            
+            if select_count_this_cluster > 0:
+                sorted_cluster_frame_indices = sorted(
+                    range(len(current_cluster_items)),
+                    key=lambda j: current_cluster_items[j][1],
+                    reverse=True
+                )
+                
+                count_from_cluster = 0
+                for k_idx in sorted_cluster_frame_indices:
+                    frame_path = current_cluster_items[k_idx][0]
+                    if frame_path not in selected_frames:
+                        selected_frames.append(frame_path)
+                        count_from_cluster += 1
+                        if count_from_cluster >= select_count_this_cluster:
+                            break
+            current_cluster_items = []
+    if args.dumb_percent > 0:
+        num_sectors = int(len(scores) * args.dumb_percent)
+        if num_sectors > 0:
+            base_sector_size = len(scores) // num_sectors
+            remainder = len(scores) % num_sectors
+            current_pos = 0
+            for i in range(num_sectors):
+                sector_len = base_sector_size + (1 if i < remainder else 0)
+                if sector_len == 0:
                     continue
-                selected_frames.append(frame_path)
-                count += 1
-                if count >= select_count:
-                    break
-            current_cluster = []
+                if current_pos >= len(scores):
+                    break 
+                sector_end_pos = current_pos + sector_len
+                current_sector_data = scores[current_pos:sector_end_pos]
+                current_pos = sector_end_pos
+                sorted_sector_frames = sorted(current_sector_data, key=lambda x: x[1], reverse=True)
+                for frame_path, _ in sorted_sector_frames:
+                    if frame_path not in selected_frames:
+                        selected_frames.append(frame_path)
+                        break
+    
     return selected_frames

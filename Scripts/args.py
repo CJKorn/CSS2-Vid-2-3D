@@ -62,9 +62,14 @@ def parse_arguments():
 
     parser.add_argument('-CP', '--cluster-percent', 
         type=float,
-        default=0.1,
+        default=0.25,
         help='Percent of frames to select from clusters')
     
+    parser.add_argument('-DP', '--dumb_percent',
+        type=float,
+        default=0.1,
+        help='Percent of frames to select from dumb selection')
+
     parser.add_argument('--task',
         type=str,
         default='FMANet',
